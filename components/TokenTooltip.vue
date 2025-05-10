@@ -1,8 +1,8 @@
 <template>
-  <div class="token-tooltip bg-white dark:bg-gray-900 shadow-lg rounded-lg pl-2 pt-2 border border-gray-200 dark:border-gray-700 transition-all duration-200 ease-in-out overflow-hidden"
+  <div class="token-tooltip bg-white dark:bg-gray-900 shadow-lg rounded-lg pl-2 pt-2 border border-gray-200 dark:border-gray-700 transition-all duration-200 ease-in-out overflow-auto"
        @mouseenter="$emit('mouseenter')"
        @mouseleave="$emit('mouseleave')">
-    <div class="tooltip-content"
+    <div class="tooltip-content overflow-visible"
          :style="contentStyle">
       <!-- 基本信息和字典 -->
       <div class="pb-2">
@@ -12,15 +12,16 @@
 
       <!-- 例句和相关上下文 -->
       <div v-if="examples.length > 0 || relatedTokens.length > 0"
-           class="pt-2 mt-2 border-t border-gray-200 dark:border-gray-700">
+           class="pt-2 mt-2 border-gray-200 dark:border-gray-700">
         <ExampleSentences :examples="examples"
                           :related="relatedTokens"
+                          :token="token"
                           @highlight-sentence="$emit('highlight-sentence', $event)" />
       </div>
 
       <!-- 翻译或备注 -->
       <div v-if="note"
-           class="text-xs pt-2 mt-2 border-t border-gray-200 dark:border-gray-700">
+           class="text-xs pt-2 mt-2 border-gray-200 dark:border-gray-700">
         <div class="font-semibold mb-1">備考:</div>
         <div class="text-gray-600 dark:text-gray-400">{{ note }}</div>
       </div>
@@ -73,11 +74,9 @@ const calculateMaxHeight = () => {
   maxHeight.value = viewportHeight * 0.8;
 };
 
-// 计算内容样式
+// 计算内容样式 - 不再设置最大高度限制
 const contentStyle = computed(() => {
-  return {
-    maxHeight: `${maxHeight.value - 24}px` // 减去padding
-  };
+  return {}; // 空对象，不设置高度限制
 });
 </script>
 
@@ -90,42 +89,75 @@ const contentStyle = computed(() => {
   /* 确保tooltip在最上层 */
   box-sizing: border-box;
   position: relative;
-  overflow: hidden !important;
-  /* 外层容器不滚动 */
+  overflow: auto !important;
+  /* 外层容器滚动 */
+  max-height: 80vh;
+  /* 限制最大高度 */
   margin: 0 !important;
   /* 移除可能的外边距 */
   border-radius: 8px;
   /* 保持圆角 */
+  scrollbar-width: thin;
+  /* 滚动条样式 */
+  /* 隐藏滚动条但保留功能 */
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+  /* 确保背景被裁剪成圆角 */
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+  mask-image: radial-gradient(white, black);
 }
 
 .tooltip-content {
-  scrollbar-width: thin;
-  /* 添加内部滚动条，避免整页滚动 */
-  overflow-y: auto !important;
-  /* 只有内容区滚动 */
-  overflow-x: hidden !important;
-  max-height: 100%;
-  /* 充满父容器 */
-  /* padding-right: 4px; 为滚动条留出空间 */
-  margin-right: 0;
-  /* 移除右边距 */
+  /* 添加内部内容样式 */
+  overflow: visible !important;
+  /* 内层不滚动 */
+  overflow-x: visible !important;
+  padding-right: 8px;
+  /* 为滚动条留出空间 */
 }
 
-.tooltip-content::-webkit-scrollbar {
-  width: 3px;
+/* 自定义滚动条样式 */
+.token-tooltip::-webkit-scrollbar {
+  width: 2px;
+  /* 更窄的滚动条 */
 }
 
-.tooltip-content::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 1.5px;
+.token-tooltip::-webkit-scrollbar-track {
+  background: transparent;
+  /* 透明轨道 */
 }
 
-.tooltip-content::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 1.5px;
+.token-tooltip::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  /* 更透明的滚动条 */
+  border-radius: 1px;
+  height: 50px;
+  /* 固定高度，创建简单的圆角矩形 */
 }
 
-.tooltip-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
+/* 隐藏滚动条上下按钮 */
+.token-tooltip::-webkit-scrollbar-button {
+  display: none;
+  /* 隐藏上下箭头按钮 */
+}
+
+/* 隐藏边角 */
+.token-tooltip::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* 暗黑模式下的滚动条样式 */
+.dark .token-tooltip {
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.dark .token-tooltip::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  /* 暗黑模式下更亮的滚动条 */
+}
+
+/* 隐藏滚动条上下按钮 */
+.token-tooltip::-webkit-scrollbar-button {
+  display: none;
+  /* 隐藏上下箭头按钮 */
 }
 </style>

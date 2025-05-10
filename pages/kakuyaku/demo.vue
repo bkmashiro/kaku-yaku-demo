@@ -84,10 +84,72 @@ const analyzeSentence = async () => {
   color: #f3f4f6;
 }
 
-/* 简单设置tooltip最大高度和滚动 */
+/* 更新tooltip的滚动策略 - 外层滚动内层不滚动 */
 .v-popper__inner {
-  max-height: 80vh;
-  overflow-y: hidden !important;
+  max-height: none !important; /* 移除高度限制，由内部控制 */
+  overflow: visible !important; /* 内部不应该滚动 */
+}
+
+/* 全局滚动条样式 */
+:root {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+/* 暗黑模式下的滚动条样式 */
+.dark {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15); /* 暗黑模式下更亮的滚动条 */
+}
+
+/* Webkit浏览器滚动条样式 */
+::-webkit-scrollbar {
+  width: 2px; /* 更窄的滚动条 */
+}
+
+::-webkit-scrollbar-track {
+  background: transparent; /* 透明轨道 */
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15); /* 更透明的滚动条 */
+  border-radius: 1px;
+}
+
+/* 隐藏滚动条上下按钮 */
+::-webkit-scrollbar-button {
+  display: none; /* 隐藏上下箭头按钮 */
+}
+
+/* 隐藏边角 */
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* 修复tooltip圆角裁剪问题 */
+.v-popper__popper {
+  overflow: hidden !important;
+  border-radius: 8px !important;
+  background-clip: padding-box !important;
+  -webkit-mask-image: -webkit-radial-gradient(white, black) !important;
+  mask-image: radial-gradient(white, black) !important;
+}
+
+/* 确保内部元素也有圆角 */
+.v-popper__inner {
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  background-clip: padding-box !important;
+}
+
+/* 修复floating-vue的样式以确保圆角正确 */
+.v-popper--theme-tooltip .v-popper__inner {
+  border-radius: 8px !important;
+  overflow: hidden !important;
 }
 
 /* 确保锁定的tooltip不闪烁 */
@@ -126,8 +188,25 @@ const analyzeSentence = async () => {
   padding: 0 !important;
 }
 
-/* 移除滚动条与边框的间距 */
-.v-popper__inner > * {
-  margin: 0 !important;
+/* 修复可访问性警告 */
+/* .v-popper__popper[aria-hidden="true"] {
+  visibility: hidden !important; 
+  opacity: 0 !important;
+} */
+
+/* 在锁定状态下覆盖浮动提示的可访问性属性 */
+.locked-state ~ .v-popper__popper,
+.locked-state + .v-popper__popper,
+.locked-state > .v-popper__popper {
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 9999 !important;
 }
+
+/* 针对特定情况的修复 */
+/* div.v-popper__popper[aria-hidden="true"][tabindex="0"] {
+  visibility: hidden !important;
+  opacity: 0 !important;
+} */
+
 </style>

@@ -6,7 +6,7 @@
     </div>
     
     <!-- 操作提示 -->
-    <div class="text-sm text-gray-500 dark:text-gray-400 mt-2 mb-4 flex items-center">
+    <!-- <div class="text-sm text-gray-500 dark:text-gray-400 mt-2 mb-4 flex items-center">
       <span class="i-heroicons-information-circle mr-1"></span>
       点击单词可以锁定提示框，再次点击解除锁定
       <span v-if="lockedToken" class="ml-2 text-blue-500 dark:text-blue-400 font-medium flex items-center">
@@ -19,7 +19,7 @@
           清除
         </button>
       </span>
-    </div>
+    </div> -->
     
     <!-- 色彩说明 -->
     <LegendDisplay />
@@ -122,7 +122,40 @@ const clearLocked = () => {
 const highlightSentence = (exampleIndex) => {
   // 这里应该通过索引获取正确的例句
   if (props.data.examples && props.data.examples[exampleIndex]) {
-    highlightedExample.value = props.data.examples[exampleIndex];
+    // 判断此例句是否已在当前显示的词典条目中
+    const example = props.data.examples[exampleIndex];
+    
+    // 如果当前有锁定的token，判断其显示的词典条目是否包含该例句
+    if (lockedToken.value && lockedToken.value.token.jmdict) {
+      let isDuplicate = false;
+      
+      // 遍历当前token的所有JMDict条目
+      for (const entry of lockedToken.value.token.jmdict) {
+        if (entry.example && entry.example.length) {
+          // 检查例句是否已存在于词典条目中
+          for (const ex of entry.example) {
+            if (ex.sentences && ex.sentences.length >= 2) {
+              if (ex.sentences[0] === example.japanese && ex.sentences[1] === example.translation) {
+                isDuplicate = true;
+                break;
+              }
+            }
+          }
+        }
+        if (isDuplicate) break;
+      }
+      
+      // 只有在不重复的情况下才显示高亮例句
+      if (!isDuplicate) {
+        highlightedExample.value = example;
+      } else {
+        // 如果例句重复，则不显示在下方
+        highlightedExample.value = null;
+      }
+    } else {
+      // 如果没有锁定的token，正常显示例句
+      highlightedExample.value = example;
+    }
   }
 };
 
@@ -207,8 +240,8 @@ const loadTokenDetails = async (token) => {
   
   try {
     // 这里可以调用API获取更详细的词典数据
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
+    // await new Promise(resolve => setTimeout(resolve, 800));
+    //TODO
     // 标记为已加载，避免重复请求
     token.detailsLoaded = true;
   } catch (error) {

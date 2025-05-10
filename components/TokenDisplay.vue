@@ -2,7 +2,7 @@
   <Dropdown ref="dropdown"
             :distance="10"
             :skidding="0"
-            placement="auto"
+            placement="auto-end"
             :delay="animationDelays"
             :shown="isLocked || isOpen"
             :auto-hide="!isLocked"
@@ -17,7 +17,8 @@
             @apply-show="handlePopoverShow"
             @apply-hide="handlePopoverHide"
             @click-outside="handleClickOutside"
-            :class="{ 'locked-state': isLocked }">
+            :class="{ 'locked-state': isLocked }"
+            tabindex="-1">
     <div class="relative group cursor-pointer my-1 mx-0.5"
          @click="handleClick"
          :data-token="`${sentenceIndex}-${tokenIndex}`">
@@ -42,13 +43,14 @@
                     :related-tokens="relatedTokens"
                     @highlight-sentence="$emit('highlight-sentence', $event)"
                     @mouseenter="handleMouseEnterTooltip"
-                    @mouseleave="handleMouseLeaveTooltip" />
+                    @mouseleave="handleMouseLeaveTooltip"
+                    tabindex="-1" />
     </template>
   </Dropdown>
 </template>
 
 <script setup>
-import { computed, ref, watch, onBeforeUnmount } from 'vue';
+import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import TokenTooltip from './TokenTooltip.vue';
 import { Dropdown } from 'floating-vue';
 
@@ -88,12 +90,51 @@ const isLocked = ref(false);
 const isMouseInTooltip = ref(false);
 // dropdown实例引用
 const dropdown = ref(null);
+// 定时器引用
+let checkInterval = null;
 
 // 动态控制动画延迟时间
 const animationDelays = computed(() => {
   return isLocked.value
     ? { show: 0, hide: 0 }
-    : { show: 0, hide: 0 };
+    : { show: 200, hide: 0 };
+});
+
+// 处理DOM更新，修复aria-hidden警告
+// const fixAriaHidden = () => {
+//   if (!isLocked.value) return;
+  
+//   // 使用nextTick确保DOM已更新
+//   nextTick(() => {
+//     // 尝试查找相关的popper元素
+//     if (dropdown.value && dropdown.value.$el) {
+//       const poppers = document.querySelectorAll('.v-popper__popper[aria-hidden="true"]');
+//       poppers.forEach(popper => {
+//         // 删除可能导致警告的属性
+//         popper.removeAttribute('aria-hidden');
+//         // 使用inert属性替代
+//         if (isLocked.value) {
+//           popper.removeAttribute('inert');
+//         }
+//       });
+//     }
+//   });
+// };
+
+// 组件卸载前清理工作
+onBeforeUnmount(() => {
+  // 清除定时器
+  if (checkInterval) {
+    clearInterval(checkInterval);
+    checkInterval = null;
+  }
+  
+  // 如果当前tooltip是锁定的，通知父组件
+  if (isLocked.value) {
+    isLocked.value = false;
+    isOpen.value = false;
+    emit('hide-tooltip');
+  }
 });
 
 // 监听锁定状态变化
@@ -101,20 +142,27 @@ watch(isLocked, (locked) => {
   // 锁定状态变化时，更新isOpen状态
   isOpen.value = locked || isMouseInTooltip.value;
   
-  // 如果锁定，添加一个定时器定期检查状态并确保tooltip显示
+  // 如果锁定，修复aria-hidden问题
   if (locked) {
-    const checkInterval = setInterval(() => {
+    // fixAriaHidden();
+    
+    // 定期检查并修复
+    if (checkInterval) {
+      clearInterval(checkInterval);
+    }
+    
+    checkInterval = setInterval(() => {
       if (!isLocked.value) {
         clearInterval(checkInterval);
+        checkInterval = null;
         return;
       }
       isOpen.value = true;
+      // fixAriaHidden();
     }, 200);
-    
-    // 在组件销毁时清理定时器
-    onBeforeUnmount(() => {
-      clearInterval(checkInterval);
-    });
+  } else if (checkInterval) {
+    clearInterval(checkInterval);
+    checkInterval = null;
   }
 });
 
@@ -155,6 +203,7 @@ const handleClick = (event) => {
     // 确保锁定状态下始终可见
     setTimeout(() => { 
       isOpen.value = true;
+      // fixAriaHidden();
     }, 50);
   } else if (!isMouseInTooltip.value) {
     // 如果解锁且鼠标不在tooltip上，则隐藏
@@ -181,7 +230,6 @@ const handlePopoverShow = () => {
 
 // 弹出框隐藏处理
 const handlePopoverHide = (event) => {
-  console.log('popover hide event, isLocked:', isLocked.value);
   // 如果是锁定状态，阻止隐藏
   if (isLocked.value) {
     // 阻止默认隐藏行为
@@ -208,14 +256,12 @@ const handlePopoverHide = (event) => {
 
 // 处理鼠标进入tooltip
 const handleMouseEnterTooltip = () => {
-  console.log('mouse enter tooltip, isLocked:', isLocked.value);
   isMouseInTooltip.value = true;
   isOpen.value = true;
 };
 
 // 处理鼠标离开tooltip
 const handleMouseLeaveTooltip = () => {
-  console.log('mouse leave tooltip, isLocked:', isLocked.value);
   isMouseInTooltip.value = false;
   
   // 只有在非锁定状态下，才允许隐藏
@@ -236,16 +282,6 @@ const handleClickOutside = () => {
     emit('hide-tooltip');
   }
 };
-
-// 组件卸载前清理工作
-onBeforeUnmount(() => {
-  // 如果当前tooltip是锁定的，通知父组件
-  if (isLocked.value) {
-    isLocked.value = false;
-    isOpen.value = false;
-    emit('hide-tooltip');
-  }
-});
 </script>
 
 <style>
@@ -258,11 +294,18 @@ onBeforeUnmount(() => {
   position: absolute !important;
   transform: none !important;
   z-index: 10000 !important;
+  /* 修复可访问性问题 */
+  /* inert: none !important; */
+  /* 确保圆角正确 */
+  overflow: hidden !important;
+  border-radius: 8px !important;
 }
 
 /* 控制显示和隐藏过渡 */
 .v-popper__popper {
   transition: opacity 0.15s, visibility 0.15s !important;
+  overflow: hidden !important;
+  border-radius: 8px !important;
 }
 
 .v-popper__popper[data-popper-reference-hidden] {
@@ -275,5 +318,35 @@ onBeforeUnmount(() => {
 .locked-state .v-popper__inner {
   visibility: visible !important;
   opacity: 1 !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+
+/* 修复可访问性问题 */
+/* .v-popper__popper[aria-hidden="true"] {
+  visibility: hidden !important;
+  opacity: 0 !important;
+} */
+
+/* 锁定状态下的popper元素 */
+.locked-state ~ .v-popper__popper,
+.locked-state > .v-popper__popper,
+.locked-state .v-popper__popper {
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  overflow: hidden !important;
+  border-radius: 8px !important;
+}
+
+/* 修复圆角裁剪问题 - 应用于所有tooltip元素 */
+.v-popper__popper, 
+.v-popper__inner, 
+.token-tooltip {
+  -webkit-mask-image: -webkit-radial-gradient(white, black) !important;
+  mask-image: radial-gradient(white, black) !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  background-clip: padding-box !important;
 }
 </style>

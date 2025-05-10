@@ -14,7 +14,7 @@
     <!-- JMDict 辞書情報 -->
     <div v-if="hasJMDict" class="text-xs border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
       <div class="font-semibold mb-1">JMDict:</div>
-      <div v-for="(entry, index) in token.jmdict" :key="`jmdict-${index}`" class="mb-3 pb-2 border-b border-gray-100 dark:border-gray-800">
+      <div v-for="(entry, index) in token.jmdict" :key="`jmdict-${index}`" class="mb-3 pb-2 border-gray-100 dark:border-gray-800">
         <div class="font-medium">{{ entry.keb?.join('、') || token.surface }}</div>
         <div class="text-gray-600 dark:text-gray-300 italic">{{ entry.reb?.join('、') }}</div>
         
