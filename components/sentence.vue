@@ -94,8 +94,6 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
-
 // 组件属性
 const props = defineProps({
   data: {
