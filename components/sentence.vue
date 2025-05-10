@@ -40,7 +40,7 @@
             <!-- 提示框 -->
             <div 
               v-if="activeTooltip && activeTooltip.tokenIndex === tokenIndex && activeTooltip.sentenceIndex === sentenceIndex"
-              class="absolute z-50 w-64 bg-white dark:bg-gray-900 shadow-lg rounded-lg p-3 mt-1 border border-gray-200 dark:border-gray-700"
+              class="absolute z-50 w-64 bg-white dark:bg-gray-900 shadow-lg rounded-lg p-3 mt-1 border border-gray-200 dark:border-gray-700 transition-all duration-200 ease-in-out"
               style="left: 0; top: 100%;"
             >
               <div class="text-sm font-semibold mb-1">{{ token.surface }}</div>
@@ -54,9 +54,15 @@
               </div>
               
               <!-- 辞書検索結果 -->
-              <div v-if="activeDictionaryData" class="text-xs border-t border-gray-200 dark:border-gray-700 pt-2 mt-2">
-                <div class="font-semibold mb-1">辞書情報:</div>
-                <div>{{ activeDictionaryData.meaning }}</div>
+              <div class="text-xs border-t border-gray-200 dark:border-gray-700 pt-2 mt-2 min-h-[40px] transition-all duration-200">
+                <div v-if="isLoading" class="flex items-center gap-1">
+                  <div class="w-3 h-3 border-t-2 border-r-2 border-blue-300 dark:border-blue-600 rounded-full animate-spin opacity-60"></div>
+                  <span class="text-gray-500 dark:text-gray-400">辞書情報を検索中...</span>
+                </div>
+                <div v-else-if="activeDictionaryData" class="transition-opacity duration-200">
+                  <div class="font-semibold mb-1">辞書情報:</div>
+                  <div>{{ activeDictionaryData.meaning }}</div>
+                </div>
               </div>
               
               <!-- 関連単語 -->
@@ -68,7 +74,7 @@
                       class="cursor-pointer underline text-blue-600 dark:text-blue-400" 
                       @click="highlightSentence(related.sentenceIndex)"
                     >
-                      文{{ related.sentenceIndex + 1 }}:
+                      文{{ related.sentenceIndex + 1 }}
                     </span>: {{ related.token.surface }}
                   </div>
                 </div>
@@ -103,6 +109,7 @@ const activeTooltip = ref(null);
 const activeDictionaryData = ref(null);
 const relatedTokens = ref([]);
 const highlightedSentenceIndex = ref(null);
+const isLoading = ref(false);
 
 // 词性颜色映射
 const posColorMap = {
@@ -172,10 +179,14 @@ const showTooltip = async (tokenIndex, token, sentenceIndex) => {
   relatedTokens.value = findRelatedTokens(sentenceIndex, token);
   
   // 模拟获取词典信息
+  isLoading.value = true;
   try {
     await fetchDictionaryData(token.dictionaryForm);
   } catch (error) {
     console.error('获取词典数据失败', error);
+    activeDictionaryData.value = { meaning: 'データ読み込みエラー' };
+  } finally {
+    isLoading.value = false;
   }
 };
 
@@ -267,13 +278,22 @@ const fetchDictionaryData = async (word) => {
       
       activeDictionaryData.value = mockDictionary[word] || { meaning: '未找到词典信息。' };
       resolve(activeDictionaryData.value);
-    }, 200);
+    }, 800); // 增加延迟以便更好地观察加载状态
   });
 };
 </script>
 
 <style scoped>
 .sentence-analyzer {
-  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, "Yu Gothic", sans-serif;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.fade-enter-active {
+  animation: fadeIn 0.3s ease-in-out;
 }
 </style>
