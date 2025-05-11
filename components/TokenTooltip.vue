@@ -1,7 +1,7 @@
 <template>
   <div class="token-tooltip bg-white dark:bg-gray-900 shadow-lg rounded-lg pl-2 pt-2 border border-gray-200 dark:border-gray-700 transition-all duration-200 ease-in-out overflow-auto"
-       @mouseenter="$emit('mouseenter')"
-       @mouseleave="$emit('mouseleave')">
+            @mouseenter="$emit('mouseenter')"
+            @mouseleave="$emit('mouseleave')">
     <div class="tooltip-content overflow-visible"
          :style="contentStyle">
       <!-- 基本信息和字典 -->
